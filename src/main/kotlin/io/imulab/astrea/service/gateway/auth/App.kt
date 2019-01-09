@@ -10,6 +10,7 @@ import io.imulab.astrea.sdk.commons.doNotCall
 import io.imulab.astrea.sdk.discovery.RemoteDiscoveryService
 import io.imulab.astrea.sdk.discovery.SampleDiscovery
 import io.imulab.astrea.sdk.event.ClientEvents
+import io.imulab.astrea.sdk.flow.hybrid.RemoteHybridFlowCodeLegService
 import io.imulab.astrea.sdk.oauth.client.ClientLookup
 import io.imulab.astrea.sdk.oauth.client.OAuthClient
 import io.imulab.astrea.sdk.oauth.request.OAuthRequestProducer
@@ -24,6 +25,7 @@ import io.imulab.astrea.service.gateway.auth.authz.AuthorizationHandler
 import io.imulab.astrea.service.gateway.auth.authz.AutoConsentAuthorizationFilter
 import io.imulab.astrea.service.gateway.auth.authz.ConsentTokenAuthorizationFilter
 import io.imulab.astrea.service.gateway.auth.dispatch.AuthorizeCodeFlowAuthorizeLeg
+import io.imulab.astrea.service.gateway.auth.dispatch.HybridFlowAuthorizeLeg
 import io.imulab.astrea.service.gateway.auth.dispatch.ImplicitFlow
 import io.imulab.astrea.service.gateway.auth.lock.ParameterLocker
 import io.vertx.core.Vertx
@@ -69,6 +71,7 @@ open class App(private val vertx: Vertx, private val config: Config) {
             importOnce(client)
             importOnce(authorizeCodeFlow)
             importOnce(implicitFlow)
+            importOnce(hybridFlow)
             importOnce(app)
 
             bind<GatewayVerticle>() with singleton {
@@ -82,7 +85,8 @@ open class App(private val vertx: Vertx, private val config: Config) {
                     supportValidator = instance(),
                     dispatchers = listOf(
                         instance<AuthorizeCodeFlowAuthorizeLeg>(),
-                        instance<ImplicitFlow>()
+                        instance<ImplicitFlow>(),
+                        instance<HybridFlowAuthorizeLeg>()
                     )
                 )
             }
@@ -176,11 +180,7 @@ open class App(private val vertx: Vertx, private val config: Config) {
                 ManagedChannelBuilder.forAddress(
                     config.getString("authorizeCodeFlow.host"),
                     config.getInt("authorizeCodeFlow.port")
-                )
-                    .enableRetry()
-                    .maxRetryAttempts(10)
-                    .usePlaintext()
-                    .build()
+                ).enableRetry().maxRetryAttempts(10).usePlaintext().build()
             )
         }
     }
@@ -191,11 +191,20 @@ open class App(private val vertx: Vertx, private val config: Config) {
                 ManagedChannelBuilder.forAddress(
                     config.getString("implicitFlow.host"),
                     config.getInt("implicitFlow.port")
+                ).enableRetry().maxRetryAttempts(10).usePlaintext().build()
+            )
+        }
+    }
+
+    val hybridFlow = Kodein.Module("hybridFlow") {
+        bind<HybridFlowAuthorizeLeg>() with singleton {
+            HybridFlowAuthorizeLeg(
+                RemoteHybridFlowCodeLegService(
+                    ManagedChannelBuilder.forAddress(
+                        config.getString("hybridFlow.host"),
+                        config.getInt("hybridFlow.port")
+                    ).enableRetry().maxRetryAttempts(10).usePlaintext().build()
                 )
-                    .enableRetry()
-                    .maxRetryAttempts(10)
-                    .usePlaintext()
-                    .build()
             )
         }
     }

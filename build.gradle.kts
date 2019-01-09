@@ -61,7 +61,7 @@ dependencies {
     implementation(platform("io.imulab.x:astrea-dependencies:7"))
     implementation(kotlin("stdlib-jdk8"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
-    implementation("io.imulab.x:astrea-commons:0.2.7")
+    implementation("io.imulab.x:astrea-commons:0.4.0")
     implementation("io.vertx:vertx-core")
     implementation("io.vertx:vertx-lang-kotlin")
     implementation("io.vertx:vertx-web")
